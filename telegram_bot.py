@@ -7,8 +7,8 @@ import pandas as pd
 from datetime import datetime
 
 # Telegram Bot Setup
-BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'  # Replace with your BotFather token
-CHAT_ID = 'YOUR_CHAT_ID'  # Replace with your Telegram chat ID (get from @userinfobot)
+BOT_TOKEN = '7325712759:AAGpPeJy9qvScvau2LsTWnDHddPZ6Bsa-5k'  # Replace with your BotFather token
+CHAT_ID = '6619397516'  # Replace with your Telegram chat ID (get from @userinfobot)
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorageRecord()
 dp = Dispatcher(bot, storage=storage)
