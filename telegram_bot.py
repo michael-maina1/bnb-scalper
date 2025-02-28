@@ -2,18 +2,15 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorageRecord
 from aiogram.utils import executor
 import asyncio
-from futures_bot import FuturesBot  # Import the bot class
+from futures_bot import FuturesBot
 import pandas as pd
-from datetime import datetime
+import datetime
 
-# Telegram Bot Setup
-BOT_TOKEN = '7325712759:AAGpPeJy9qvScvau2LsTWnDHddPZ6Bsa-5k'  # Replace with your BotFather token
-CHAT_ID = '6619397516'  # Replace with your Telegram chat ID (get from @userinfobot)
+BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+CHAT_ID = 'YOUR_CHAT_ID'
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorageRecord()
 dp = Dispatcher(bot, storage=storage)
-
-# Global bot instance
 bot_instance = FuturesBot()
 
 async def send_messages():

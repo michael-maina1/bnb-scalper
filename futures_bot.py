@@ -3,6 +3,7 @@ import numpy as np
 from datetime import datetime
 import time
 import os
+import asyncio
 
 class FuturesBot:
     def __init__(self, symbol='BNB/USDT', bankroll=100, max_daily_loss=0.05, fixed_tp=0.005, 
@@ -43,14 +44,12 @@ class FuturesBot:
         return upper_band, sma, lower_band
 
     def is_bullish_15m(self, df_15m):
-        # Check if bullish: Price above 15m SMA and higher highs in last 3 candles
         df_15m = df_15m.tail(3)
         sma_15m = df_15m['close'].rolling(window=3).mean().iloc[-1]
         higher_highs = all(df_15m['high'].iloc[i] < df_15m['high'].iloc[i+1] for i in range(len(df_15m)-1))
         return df_15m['close'].iloc[-1] > sma_15m and higher_highs
 
     def is_bearish_15m(self, df_15m):
-        # Check if bearish: Price below 15m SMA and lower lows in last 3 candles
         df_15m = df_15m.tail(3)
         sma_15m = df_15m['close'].rolling(window=3).mean().iloc[-1]
         lower_lows = all(df_15m['low'].iloc[i] > df_15m['low'].iloc[i+1] for i in range(len(df_15m)-1))
@@ -78,7 +77,7 @@ class FuturesBot:
         
         return df_1m, df_5m, df_15m
 
-    def execute_trade(self, df_1m, df_5m, df_15m, current_price, timestamp):
+    async def execute_trade(self, df_1m, df_5m, df_15m, current_price, timestamp):
         if self.daily_loss >= self.max_daily_loss * self.bankroll:
             self.message_queue.append(f"[{timestamp}] Daily loss limit ($5) reached. Bot stopped.")
             return False
@@ -88,11 +87,10 @@ class FuturesBot:
         
         print(f"[{timestamp}] Price: {current_price:.2f} | Upper BB: {upper_band.iloc[-1]:.2f} | Middle BB: {middle_band.iloc[-1]:.2f} | Lower BB: {lower_band.iloc[-1]:.2f} | Diff (U): {current_price - upper_band.iloc[-1]:.2f} | Diff (L): {current_price - lower_band.iloc[-1]:.2f}")
 
-        # Check 15m trend for direction
         is_bullish = self.is_bullish_15m(df_15m)
         is_bearish = self.is_bearish_15m(df_15m)
 
-        if self.position is None:  # No position open
+        if self.position is None:
             if is_bullish and current_price > upper_band.iloc[-1]:  # Buy on bullish breakout
                 position_size = (self.bankroll * 0.01 * self.leverage) / current_price
                 stop_loss = current_price - (5 / position_size)  # $5 loss cap
@@ -112,7 +110,7 @@ class FuturesBot:
                 self.message_queue.append(msg)
                 self.log_performance(timestamp)
             elif is_bearish and current_price < lower_band.iloc[-1]:  # Sell short on bearish breakdown
-                position_size = (self.bankroll * 0.01 * self.leverage) / current_price  # Size in BNB for short
+                position_size = (self.bankroll * 0.01 * self.leverage) / current_price
                 stop_loss = current_price + (5 / position_size)  # $5 loss cap (higher for short)
                 order = self.place_limit_order('sell', current_price, position_size, current_price)
                 self.position = {
@@ -182,9 +180,9 @@ class FuturesBot:
                     self.position = None
                     self.log_performance(timestamp)
             elif side == 'sell':
-                tp_price = entry_price * (1 - self.fixed_tp)  # For shorts, TP is lower
+                tp_price = entry_price * (1 - self.fixed_tp)
                 if current_price <= tp_price:
-                    exit_order = self.place_limit_order('buy', tp_price, size, current_price)  # Cover short
+                    exit_order = self.place_limit_order('buy', tp_price, size, current_price)
                     profit = (entry_price - exit_order['price']) * size - (self.maker_fee * exit_order['price'] * size)
                     self.daily_loss -= profit
                     self.trades.append({
@@ -205,7 +203,7 @@ class FuturesBot:
                     self.position = None
                     self.log_performance(timestamp)
                 elif current_price >= stop_loss:
-                    exit_order = self.place_limit_order('buy', stop_loss, size, current_price)  # Cover short
+                    exit_order = self.place_limit_order('buy', stop_loss, size, current_price)
                     profit = (entry_price - exit_order['price']) * size - (self.maker_fee * exit_order['price'] * size)
                     self.daily_loss -= profit
                     self.trades.append({
@@ -256,12 +254,12 @@ class FuturesBot:
                     self.message_queue.append(msg)
             self.last_report_date = now.date()
 
-    def run(self):
+    async def run(self):
         print(f"Starting real-time simulation on {datetime.now()} with $100 bankroll and 10x leverage")
         
         while not os.path.exists(self.csv_1m_path) or not os.path.exists(self.csv_5m_path) or not os.path.exists(self.csv_15m_path):
             print("Waiting for CSV files to be created by streamer...")
-            time.sleep(5)
+            await asyncio.sleep(5)
 
         self.running = True
         while self.running:
@@ -278,7 +276,7 @@ class FuturesBot:
                     df_5m_slice = df_5m[df_5m['timestamp'] <= current_time].tail(20)
                     df_15m_slice = df_15m[df_15m['timestamp'] <= current_time].tail(5)
                     
-                    if not self.execute_trade(df_1m_slice, df_5m_slice, df_15m_slice, current_price, current_time):
+                    if not await self.execute_trade(df_1m_slice, df_5m_slice, df_15m_slice, current_price, current_time):
                         print(f"[{current_time}] Daily loss limit reached ($5). Stopping.")
                         self.running = False
                         break
@@ -289,8 +287,7 @@ class FuturesBot:
             self.last_1m_size = current_1m_size
             self.last_5m_size = current_5m_size
             self.last_15m_size = current_15m_size
-            time.sleep(10)
+            await asyncio.sleep(10)
 
 if __name__ == "__main__":
-    bot = FuturesBot()
-    bot.run()
+    asyncio.run(FuturesBot().run())
