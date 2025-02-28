@@ -1,14 +1,16 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.fsm.storage.memory import MemoryStorageRecord
 from aiogram.utils import executor
 import asyncio
 from futures_bot import FuturesBot  # Import the bot class
+import pandas as pd
+from datetime import datetime
 
 # Telegram Bot Setup
 BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'  # Replace with your BotFather token
 CHAT_ID = 'YOUR_CHAT_ID'  # Replace with your Telegram chat ID (get from @userinfobot)
 bot = Bot(token=BOT_TOKEN)
-storage = MemoryStorage()
+storage = MemoryStorageRecord()
 dp = Dispatcher(bot, storage=storage)
 
 # Global bot instance
