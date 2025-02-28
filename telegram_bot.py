@@ -6,8 +6,8 @@ from futures_bot import FuturesBot
 import pandas as pd
 import datetime
 
-BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
-CHAT_ID = 'YOUR_CHAT_ID'
+BOT_TOKEN = '7325712759:AAGpPeJy9qvScvau2LsTWnDHddPZ6Bsa-5k'
+CHAT_ID = '6619397516'
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorageRecord()
 dp = Dispatcher(bot, storage=storage)
